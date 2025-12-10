@@ -95,8 +95,7 @@ services:
       NODE_ENV: development
       PORT: 3001
       DATABASE_URL: postgresql://fitsync:fitsync123@userdb:5432/userdb
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
       JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-in-production
       JWT_EXPIRY: 15m
@@ -123,8 +122,7 @@ services:
       NODE_ENV: development
       PORT: 3002
       DATABASE_URL: postgresql://fitsync:fitsync123@trainingdb:5432/trainingdb
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
       USER_SERVICE_URL: http://user-service:3001
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
     depends_on:
@@ -149,8 +147,7 @@ services:
       ENVIRONMENT: development
       PORT: 8003
       DATABASE_URL: postgresql://fitsync:fitsync123@scheduledb:5432/scheduledb
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
       USER_SERVICE_URL: http://user-service:3001
     depends_on:
@@ -174,8 +171,7 @@ services:
       ENVIRONMENT: development
       PORT: 8004
       DATABASE_URL: postgresql://fitsync:fitsync123@progressdb:5432/progressdb
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
       USER_SERVICE_URL: http://user-service:3001
     depends_on:
@@ -198,8 +194,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3005
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
       USER_SERVICE_URL: http://user-service:3001
       SMTP_HOST: smtp.gmail.com
       SMTP_PORT: 587
@@ -230,8 +225,7 @@ services:
       PROGRESS_SERVICE_URL: http://progress-service:8004
       NOTIFICATION_SERVICE_URL: http://notification-service:3005
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
       RATE_LIMIT_WINDOW_MS: 900000
       RATE_LIMIT_MAX_REQUESTS: 100
     depends_on:
