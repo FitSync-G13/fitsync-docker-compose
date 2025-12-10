@@ -1,10 +1,20 @@
 # FitSync Docker Compose
 
-Docker Compose configuration for running the complete FitSync application stack locally.
+Docker Compose configuration for running the complete FitSync multi-repository application.
 
 ## Overview
 
-This repository contains the Docker Compose setup for local development and testing of the FitSync microservices application.
+This repository contains the Docker Compose orchestration for the FitSync microservices application. It manages all services, databases, and infrastructure components required to run FitSync locally or in deployment environments.
+
+## Quick Start for Testers
+
+If you're testing the FitSync application, see **[SETUP.md](SETUP.md)** for complete setup instructions.
+
+**TL;DR:**
+1. Clone all 8 repositories to the same parent directory
+2. Navigate to this repository
+3. Run `./setup.sh` (Linux/Mac) or `setup.bat` (Windows)
+4. Access the app at http://localhost:3000
 
 ## Services
 
@@ -29,47 +39,127 @@ The docker-compose.yml includes:
 
 ## Prerequisites
 
-- Docker Desktop installed
-- Docker Compose V2
+- **Docker Desktop** installed and running
+- **Docker Compose V2** (included with Docker Desktop)
+- **Git** for cloning repositories
+- **10 GB** free disk space
+- **8 GB RAM** minimum (16 GB recommended)
+
+## Repository Structure
+
+FitSync uses a multi-repository architecture. All repositories must be cloned to the same parent directory:
+
+```
+parent-directory/
+├── fitsync-docker-compose/         # THIS REPOSITORY - Orchestration
+├── fitsync-api-gateway/            # API Gateway
+├── fitsync-user-service/           # User management
+├── fitsync-training-service/       # Workouts & exercises
+├── fitsync-schedule-service/       # Booking system
+├── fitsync-progress-service/       # Progress tracking
+├── fitsync-notification-service/   # Notifications
+└── fitsync-frontend/               # React web app
+```
 
 ## Quick Start
 
-### 1. Initialize Environment
+### Automated Setup (Recommended)
 
+**Linux/Mac:**
 ```bash
-# Linux/Mac
-./init-env.sh
-
-# Windows
-init-env.bat
+chmod +x setup.sh
+./setup.sh
 ```
 
-This creates `.env` files for all services.
-
-### 2. Start All Services
-
-```bash
-docker-compose up -d
+**Windows:**
+```batch
+setup.bat
 ```
 
-### 3. View Logs
+The setup script will:
+1. Check Docker installation
+2. Verify all repositories are present
+3. Start all services
+4. Seed databases with test data
+5. Display access URLs and credentials
 
+### Manual Setup
+
+If you prefer manual setup or the automated script doesn't work:
+
+1. **Start all services:**
+   ```bash
+   docker compose up -d
+   ```
+
+2. **Wait for services to start (30 seconds):**
+   ```bash
+   sleep 30
+   ```
+
+3. **Seed the databases:**
+   ```bash
+   docker compose exec user-service node src/database/seed.js
+   docker compose exec training-service node src/database/seed.js
+   ```
+
+4. **Verify services are running:**
+   ```bash
+   docker compose ps
+   ```
+
+## Access the Application
+
+Once setup is complete:
+
+- **Frontend:** http://localhost:3000
+- **API Gateway:** http://localhost:4000
+
+**Test Credentials:**
+- Client: `client@fitsync.com` / `Client@123`
+- Trainer: `trainer@fitsync.com` / `Trainer@123`
+- Admin: `admin@fitsync.com` / `Admin@123`
+- Gym Owner: `gym@fitsync.com` / `Gym@123`
+
+## Common Commands
+
+### View Logs
 ```bash
 # All services
-docker-compose logs -f
+docker compose logs -f
 
 # Specific service
-docker-compose logs -f user-service
+docker compose logs -f user-service
+docker compose logs -f frontend
 ```
 
-### 4. Stop Services
-
+### Stop Services
 ```bash
 # Stop all services
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (clean slate)
-docker-compose down -v
+docker compose down -v
+```
+
+### Restart Services
+```bash
+# Restart all
+docker compose restart
+
+# Restart specific service
+docker compose restart user-service
+```
+
+### Rebuild After Code Changes
+```bash
+# Rebuild specific service
+docker compose build user-service
+docker compose up -d user-service
+
+# Rebuild all
+docker compose build
+docker compose up -d
 ```
 
 ## Service URLs

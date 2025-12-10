@@ -1,262 +1,178 @@
 #!/bin/bash
+set -e
 
-# FitSync Setup Script - Automated deployment and initialization
-# This script sets up the entire FitSync application from scratch
+# FitSync Multi-Repo Setup Script
+# This script automates the complete setup process for the FitSync application
 
-set -e  # Exit on error
-
-echo "========================================"
-echo "  FitSync Automated Setup Script"
-echo "========================================"
+echo "======================================"
+echo "   FitSync Application Setup"
+echo "======================================"
 echo ""
 
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Function to print colored output
-print_success() {
-    echo -e "${GREEN}✓${NC} $1"
-}
+# Function to print colored messages
+print_success() { echo -e "${GREEN}✓${NC} $1"; }
+print_warning() { echo -e "${YELLOW}⚠${NC} $1"; }
+print_error() { echo -e "${RED}✗${NC} $1"; }
+print_info() { echo -e "${BLUE}→${NC} $1"; }
 
-print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
-}
+# Check prerequisites
+echo "Step 1: Checking prerequisites..."
 
-print_error() {
-    echo -e "${RED}✗${NC} $1"
-}
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    print_error "Docker is not installed"
+    echo "Please install Docker Desktop from: https://www.docker.com/products/docker-desktop"
+    exit 1
+fi
 
-print_info() {
-    echo -e "→ $1"
-}
+# Check if Docker is running
+if ! docker info &> /dev/null; then
+    print_error "Docker is not running"
+    echo "Please start Docker Desktop and try again"
+    exit 1
+fi
 
-# Step 1: Create .env files for all services
-print_info "Step 1: Creating .env files for all services..."
+# Check if Docker Compose is available
+if ! docker compose version &> /dev/null; then
+    print_error "Docker Compose is not available"
+    echo "Please install Docker Compose V2"
+    exit 1
+fi
 
-# User Service .env
-cat > services/user-service/.env <<EOF
-NODE_ENV=development
-PORT=3001
+print_success "Docker is installed and running"
+print_success "Docker Compose is available"
+echo ""
 
-# Database
-DB_HOST=userdb
-DB_PORT=5432
-DB_NAME=userdb
-DB_USER=fitsync
-DB_PASSWORD=fitsync123
+# Check if all required repositories exist
+echo "Step 2: Verifying repository structure..."
+PARENT_DIR="$(cd .. && pwd)"
+MISSING_REPOS=()
 
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
+REQUIRED_REPOS=(
+    "fitsync-api-gateway"
+    "fitsync-user-service"
+    "fitsync-training-service"
+    "fitsync-schedule-service"
+    "fitsync-progress-service"
+    "fitsync-notification-service"
+    "fitsync-frontend"
+)
 
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
-JWT_EXPIRY=15m
-JWT_REFRESH_EXPIRY=7d
-EOF
-print_success "User service .env created"
+for repo in "${REQUIRED_REPOS[@]}"; do
+    if [ ! -d "$PARENT_DIR/$repo" ]; then
+        MISSING_REPOS+=("$repo")
+    fi
+done
 
-# Training Service .env
-cat > services/training-service/.env <<EOF
-NODE_ENV=development
-PORT=3002
+if [ ${#MISSING_REPOS[@]} -ne 0 ]; then
+    print_error "Missing required repositories:"
+    for repo in "${MISSING_REPOS[@]}"; do
+        echo "  - $repo"
+    done
+    echo ""
+    echo "Please clone all required repositories to the parent directory:"
+    echo "$PARENT_DIR"
+    echo ""
+    echo "See SETUP.md for cloning instructions"
+    exit 1
+fi
 
-# Database
-DB_HOST=trainingdb
-DB_PORT=5432
-DB_NAME=trainingdb
-DB_USER=fitsync
-DB_PASSWORD=fitsync123
+print_success "All required repositories found"
+echo ""
 
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
+# Start Docker services
+echo "Step 3: Starting FitSync services..."
+docker compose up -d
 
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-
-# Service URLs
-USER_SERVICE_URL=http://user-service:3001
-EOF
-print_success "Training service .env created"
-
-# API Gateway .env
-cat > services/api-gateway/.env <<EOF
-NODE_ENV=development
-PORT=4000
-
-# Service URLs
-USER_SERVICE_URL=http://user-service:3001
-TRAINING_SERVICE_URL=http://training-service:3002
-SCHEDULE_SERVICE_URL=http://schedule-service:8003
-PROGRESS_SERVICE_URL=http://progress-service:8004
-NOTIFICATION_SERVICE_URL=http://notification-service:3005
-
-# JWT
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=60000
-RATE_LIMIT_MAX_REQUESTS=1000
-EOF
-print_success "API Gateway .env created"
-
-# Notification Service .env
-cat > services/notification-service/.env <<EOF
-NODE_ENV=development
-PORT=3005
-
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
-
-# Service URLs
-USER_SERVICE_URL=http://user-service:3001
-
-# SMTP (optional)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=noreply@fitsync.com
-SMTP_PASSWORD=your-smtp-password
-EOF
-print_success "Notification service .env created"
-
-# Frontend .env
-cat > frontend/.env <<EOF
-REACT_APP_API_URL=http://localhost:4000/api
-REACT_APP_WS_URL=ws://localhost:4000
-EOF
-print_success "Frontend .env created"
-
-# Step 2: Build and start services
-print_info "Step 2: Building and starting Docker containers..."
-docker-compose down -v 2>/dev/null || true
-docker-compose build --no-cache
-docker-compose up -d
-
-print_success "Docker containers started"
-
-# Step 3: Wait for services to be healthy
-print_info "Step 3: Waiting for services to be healthy (30 seconds)..."
+echo ""
+echo "Step 4: Waiting for services to start (30 seconds)..."
 sleep 30
 
-# Step 4: Seed databases
-print_info "Step 4: Seeding databases with sample data..."
+# Check service health
+echo ""
+echo "Step 5: Checking service health..."
 
-# Seed user database
-print_info "Seeding user database..."
-docker exec fitsync-user-service npm run seed
-print_success "User database seeded"
-
-# Seed training database
-print_info "Seeding training database..."
-docker exec fitsync-training-service npm run seed
-print_success "Training database seeded"
-
-# Seed schedule database
-print_info "Seeding schedule database..."
-docker exec -i fitsync-scheduledb psql -U fitsync -d scheduledb <<'EOSQL'
-INSERT INTO bookings (type, trainer_id, client_id, gym_id, booking_date, start_time, end_time, status)
-SELECT
-  'one_on_one',
-  (SELECT id FROM (VALUES
-    ('58e50514-ddec-41d3-9790-b7015bea18c8'),
-    ('0da6da83-e24c-4b93-952a-37b0e9f53594')
-  ) AS trainers(id) LIMIT 1 OFFSET floor(random() * 2)::int),
-  (SELECT id FROM (VALUES
-    ('ae66398b-5d22-45dc-8024-59fb1352f121'),
-    ('f4ee037d-5953-4fd0-919e-1234f44acafb'),
-    ('ecdd961f-9c8f-4c06-968e-c3fead20eae7')
-  ) AS clients(id) LIMIT 1 OFFSET floor(random() * 3)::int),
-  '65710aef-2ba3-49d1-a4e1-f422dee801d1',
-  CURRENT_DATE + (n - 2),
-  ('09:00:00'::time + (n * interval '2 hours')),
-  ('10:00:00'::time + (n * interval '2 hours')),
-  CASE WHEN n <= 0 THEN 'completed' ELSE 'scheduled' END
-FROM generate_series(-2, 3) AS n
-ON CONFLICT DO NOTHING;
-EOSQL
-print_success "Schedule database seeded"
-
-# Seed progress database
-print_info "Seeding progress database..."
-docker exec -i fitsync-progressdb psql -U fitsync -d progressdb <<'EOSQL'
-INSERT INTO body_metrics (client_id, recorded_date, weight_kg, height_cm, bmi, body_fat_percentage, measurements)
-SELECT
-  client_id,
-  CURRENT_DATE - (n * 7),
-  75.0 - (n * 0.5),
-  175.0,
-  24.5 - (n * 0.1),
-  18.0 - (n * 0.3),
-  '{"chest": 95, "waist": 80, "hips": 95}'::jsonb
-FROM (VALUES ('ae66398b-5d22-45dc-8024-59fb1352f121')) AS clients(client_id),
-     generate_series(0, 4) AS n
-ON CONFLICT DO NOTHING;
-
-INSERT INTO workout_logs (client_id, workout_date, exercises_completed, total_duration_minutes, calories_burned, client_notes, mood_rating)
-SELECT
-  client_id,
-  CURRENT_DATE - n,
-  '[{"name": "Bench Press", "sets": 4, "reps": 8, "weight": 80}]'::jsonb,
-  60,
-  450,
-  'Great session!',
-  5
-FROM (VALUES ('ae66398b-5d22-45dc-8024-59fb1352f121')) AS clients(client_id),
-     generate_series(1, 3) AS n
-ON CONFLICT DO NOTHING;
-EOSQL
-print_success "Progress database seeded"
-
-# Step 5: Verify services
-print_info "Step 5: Verifying all services..."
-
-check_service() {
-    local service=$1
-    local url=$2
-    if curl -sf "$url" > /dev/null 2>&1; then
-        print_success "$service is healthy"
+# Function to check if a container is running
+check_container() {
+    if docker compose ps | grep -q "$1.*Up"; then
+        print_success "$1 is running"
         return 0
     else
-        print_error "$service is not responding"
+        print_error "$1 is not running"
         return 1
     fi
 }
 
-check_service "API Gateway" "http://localhost:4000/health"
-check_service "User Service" "http://localhost:3001/health"
-check_service "Training Service" "http://localhost:3002/health"
-check_service "Schedule Service" "http://localhost:8003/health"
-check_service "Progress Service" "http://localhost:8004/health"
-check_service "Notification Service" "http://localhost:3005/health"
+# Check all containers
+ALL_RUNNING=true
+for service in userdb trainingdb scheduledb progressdb redis \
+               user-service training-service schedule-service progress-service \
+               notification-service api-gateway frontend; do
+    if ! check_container "$service"; then
+        ALL_RUNNING=false
+    fi
+done
+
+if [ "$ALL_RUNNING" = false ]; then
+    echo ""
+    print_warning "Some services are not running. Checking logs..."
+    echo ""
+    docker compose ps
+    echo ""
+    echo "Run 'docker compose logs <service-name>' to check logs"
+    exit 1
+fi
 
 echo ""
-print_success "Setup complete!"
+echo "Step 6: Seeding databases with test data..."
+
+# Seed user service database
+print_info "Seeding user service database..."
+if docker compose exec -T user-service node src/database/seed.js > /dev/null 2>&1; then
+    print_success "User database seeded successfully"
+else
+    print_warning "User database seeding may have failed (could be already seeded)"
+fi
+
+# Seed training service database
+print_info "Seeding training service database..."
+if docker compose exec -T training-service node src/database/seed.js > /dev/null 2>&1; then
+    print_success "Training database seeded successfully"
+else
+    print_warning "Training database seeding may have failed (could be already seeded)"
+fi
+
 echo ""
-echo "========================================"
-echo "  FitSync is ready!"
-echo "========================================"
+echo "======================================"
+echo -e "${GREEN}✓ Setup Complete!${NC}"
+echo "======================================"
 echo ""
-echo "Frontend: http://localhost:3000"
-echo "API Gateway: http://localhost:4000"
+echo "Application URLs:"
+echo "  Frontend:    http://localhost:3000"
+echo "  API Gateway: http://localhost:4000"
 echo ""
 echo "Test Credentials:"
-echo "  Admin:      admin@fitsync.com / Admin@123"
-echo "  Trainer:    trainer@fitsync.com / Trainer@123"
-echo "  Client:     client@fitsync.com / Client@123"
-echo "  Gym Owner:  gym@fitsync.com / Gym@123"
+echo "  Email:    client@fitsync.com"
+echo "  Password: Client@123"
 echo ""
-echo "Useful commands:"
-echo "  docker-compose logs -f              # View all logs"
-echo "  docker-compose restart <service>    # Restart a service"
-echo "  docker-compose down                 # Stop all services"
+echo "Other test users:"
+echo "  - admin@fitsync.com    / Admin@123"
+echo "  - trainer@fitsync.com  / Trainer@123"
+echo "  - gym@fitsync.com      / Gym@123"
+echo ""
+echo "Useful Commands:"
+echo "  docker compose logs -f           # View logs"
+echo "  docker compose logs -f <service> # View specific service logs"
+echo "  docker compose restart <service> # Restart a service"
+echo "  docker compose down              # Stop all services"
+echo "  docker compose down -v           # Stop and remove all data"
+echo ""
+echo -e "${GREEN}Happy testing! 🎉${NC}"
 echo ""

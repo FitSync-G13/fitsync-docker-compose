@@ -88,7 +88,7 @@ services:
   # User Service
   user-service:
     build:
-      context: ./services/user-service
+      context: ../fitsync-user-service
       dockerfile: Dockerfile
     container_name: fitsync-user-service
     ports:
@@ -96,11 +96,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3001
-      DB_HOST: userdb
-      DB_PORT: 5432
-      DB_NAME: userdb
-      DB_USER: fitsync
-      DB_PASSWORD: fitsync123
+      DATABASE_URL: postgresql://fitsync:fitsync123@userdb:5432/userdb
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
@@ -113,14 +109,14 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./services/user-service:/app
+      - ../fitsync-user-service:/app
       - /app/node_modules
     restart: unless-stopped
 
   # Training Service
   training-service:
     build:
-      context: ./services/training-service
+      context: ../fitsync-training-service
       dockerfile: Dockerfile
     container_name: fitsync-training-service
     ports:
@@ -128,11 +124,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3002
-      DB_HOST: trainingdb
-      DB_PORT: 5432
-      DB_NAME: trainingdb
-      DB_USER: fitsync
-      DB_PASSWORD: fitsync123
+      DATABASE_URL: postgresql://fitsync:fitsync123@trainingdb:5432/trainingdb
       REDIS_HOST: redis
       REDIS_PORT: 6379
       USER_SERVICE_URL: http://user-service:3001
@@ -143,14 +135,14 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./services/training-service:/app
+      - ../fitsync-training-service:/app
       - /app/node_modules
     restart: unless-stopped
 
   # Schedule Service
   schedule-service:
     build:
-      context: ./services/schedule-service
+      context: ../fitsync-schedule-service
       dockerfile: Dockerfile
     container_name: fitsync-schedule-service
     ports:
@@ -173,13 +165,13 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./services/schedule-service:/app
+      - ../fitsync-schedule-service:/app
     restart: unless-stopped
 
   # Progress Service
   progress-service:
     build:
-      context: ./services/progress-service
+      context: ../fitsync-progress-service
       dockerfile: Dockerfile
     container_name: fitsync-progress-service
     ports:
@@ -202,13 +194,13 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./services/progress-service:/app
+      - ../fitsync-progress-service:/app
     restart: unless-stopped
 
   # Notification Service
   notification-service:
     build:
-      context: ./services/notification-service
+      context: ../fitsync-notification-service
       dockerfile: Dockerfile
     container_name: fitsync-notification-service
     ports:
@@ -227,14 +219,14 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./services/notification-service:/app
+      - ../fitsync-notification-service:/app
       - /app/node_modules
     restart: unless-stopped
 
   # API Gateway
   api-gateway:
     build:
-      context: ./services/api-gateway
+      context: ../fitsync-api-gateway
       dockerfile: Dockerfile
     container_name: fitsync-api-gateway
     ports:
@@ -260,14 +252,14 @@ services:
       - notification-service
       - redis
     volumes:
-      - ./services/api-gateway:/app
+      - ../fitsync-api-gateway:/app
       - /app/node_modules
     restart: unless-stopped
 
   # Frontend
   frontend:
     build:
-      context: ./frontend
+      context: ../fitsync-frontend
       dockerfile: Dockerfile
     container_name: fitsync-frontend
     ports:
@@ -278,7 +270,7 @@ services:
     depends_on:
       - api-gateway
     volumes:
-      - ./frontend:/app
+      - ../fitsync-frontend:/app
       - /app/node_modules
     stdin_open: true
     tty: true
