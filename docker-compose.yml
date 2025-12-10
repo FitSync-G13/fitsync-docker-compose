@@ -150,11 +150,7 @@ services:
     environment:
       ENVIRONMENT: development
       PORT: 8003
-      DB_HOST: scheduledb
-      DB_PORT: 5432
-      DB_NAME: scheduledb
-      DB_USER: fitsync
-      DB_PASSWORD: fitsync123
+      DATABASE_URL: postgresql://fitsync:fitsync123@scheduledb:5432/scheduledb
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
@@ -179,11 +175,7 @@ services:
     environment:
       ENVIRONMENT: development
       PORT: 8004
-      DB_HOST: progressdb
-      DB_PORT: 5432
-      DB_NAME: progressdb
-      DB_USER: fitsync
-      DB_PASSWORD: fitsync123
+      DATABASE_URL: postgresql://fitsync:fitsync123@progressdb:5432/progressdb
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: your-super-secret-jwt-key-change-in-production
